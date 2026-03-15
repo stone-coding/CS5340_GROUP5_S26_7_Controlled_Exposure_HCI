@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from "react";
 
-const API_BASE = "http://127.0.0.1:8000";
-
+// const API_BASE = "http://127.0.0.1:8000";
+const API_BASE = "https://cs5340-group5-s26-7-controlled-exposure.onrender.com";
 
 
 function confidenceColor(conf) {
@@ -251,7 +251,7 @@ export default function App() {
   const [overrideOpen, setOverrideOpen] = useState(false);
   const [draftSummary, setDraftSummary] = useState("");
 
-  const [auditTrail, setAuditTrail] = useState([]);
+  const [, setAuditTrail] = useState([]);
   const [metrics, setMetrics] = useState({
     gateTriggers: 0,
     overrides: 0,
@@ -259,7 +259,7 @@ export default function App() {
 
   const [mode, setMode] = useState("seamful"); // "seamful" | "seamless"
 
-  const [lastDecision, setLastDecision] = useState("none");  // "none" | "approved" | "overridden" | "auto_approved"
+  const [, setLastDecision] = useState("none");  // "none" | "approved" | "overridden" | "auto_approved"
 
   //const [sessions, setSessions] = useState([]); // store simulated sessions
 
@@ -420,7 +420,7 @@ function exportCurrentSession() {
 
 
 
-  const visibleSummary = approvedResult?.summary || "";
+  // const visibleSummary = approvedResult?.summary || "";
   const visibleLogs = serverResult?.logs || [];
 
   if (page === "intro") {
