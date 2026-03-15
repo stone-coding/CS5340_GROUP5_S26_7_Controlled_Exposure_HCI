@@ -10,9 +10,11 @@ from fastapi.middleware.cors import CORSMiddleware
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],
-    # frontend Vercel domain crosmiddleware
-    # "https://your-frontend-name.vercel.app",
+    allow_origins=[
+        "http://localhost:3000",
+        "https://cs-5340-group-5-s26-7-controlled-ex-ten.vercel.app",
+        "https://cs5340-group-5-s26-7-controlled-exposure-hci-azyu-fx8w8nlmt.vercel.app",
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
