@@ -1,7 +1,12 @@
 import React, { useMemo, useState } from "react";
 
 // const API_BASE = "http://127.0.0.1:8000";
-const API_BASE = "https://cs5340-group5-s26-7-controlled-exposure.onrender.com";
+// const API_BASE = "https://cs5340-group5-s26-7-controlled-exposure.onrender.com";
+
+const API_BASE =
+  window.location.hostname === "localhost"
+    ? "http://127.0.0.1:8000"
+    : "https://cs5340-group5-s26-7-controlled-exposure.onrender.com";
 
 
 function confidenceColor(conf) {
@@ -15,10 +20,11 @@ function Badge({ children }) {
   return (
     <span
       style={{
-        fontSize: 12,
+        fontSize: 11,
         padding: "4px 8px",
         borderRadius: 999,
-        background: "#eee",
+        background: "rgba(0,0,0,0.08)",
+        fontWeight: 700,
       }}
     >
       {children}
@@ -263,6 +269,8 @@ export default function App() {
 
   //const [sessions, setSessions] = useState([]); // store simulated sessions
 
+  const [pdfFile, setPdfFile] = useState(null); // store pdf upload
+
   const [page, setPage] = useState("intro"); // "intro" | "dashboard"
 
 
@@ -271,11 +279,55 @@ export default function App() {
   const confBarColor = useMemo(() => confidenceColor(conf), [conf]);
 
   const logs = (serverResult?.logs || []);
+
+  const modelConfidenceLog = logs.find((l) =>
+  l.message.toLowerCase().includes("model confidence")
+  );
+
+  const ruleConfidenceLog = logs.find((l) =>
+    l.message.toLowerCase().includes("rule-based confidence")
+  );
+  
   const hasWarning = logs.some((l) => l.level === "warning");
 
   function openOverride(initialText) {
     setDraftSummary(initialText || "");
     setOverrideOpen(true);
+  }
+
+  async function handlePdfUpload(file) {
+    if (!file) return;
+
+    setPdfFile(file);
+    setError("");
+    setServerResult(null);
+    setApprovedResult(null);
+    setGateOpen(false);
+    setOverrideOpen(false);
+
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+
+      const resp = await fetch(`${API_BASE}/extract-pdf-text`, {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!resp.ok) {
+        const t = await resp.text();
+        throw new Error(`HTTP ${resp.status}: ${t}`);
+      }
+
+      const data = await resp.json();
+      const cleaned = (data.text || "")
+        .replace(/\s+/g, " ")   //multiple spaces → single space
+        .trim();
+
+      setText(cleaned);
+    } catch (e) {
+      setError(e.message || String(e));
+    }
   }
 
   async function runAnalyze() {
@@ -331,7 +383,7 @@ export default function App() {
     }
   }
 
-
+  
 
   function downloadJson(filename, data) {
   const blob = new Blob(
@@ -515,37 +567,60 @@ function exportCurrentSession() {
             }}
           />
 
-          <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
-            <label style={{ fontSize: 13, opacity: 0.8 }}>Max sentences</label>
+         
+
+          {/*  PDF upload */}
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            <label style={{ fontSize: 13, opacity: 0.8 }}>Upload PDF</label>
             <input
-              type="number"
-              min={1}
-              max={10}
-              value={maxSentences}
-              onChange={(e) => setMaxSentences(Number(e.target.value))}
-              style={{
-                width: 70,
-                padding: "6px 8px",
-                borderRadius: 10,
-                border: "1px solid rgba(0,0,0,0.12)",
-              }}
+              type="file"
+              accept="application/pdf"
+              onChange={(e) => handlePdfUpload(e.target.files?.[0] || null)}
             />
-            <button
-              onClick={runAnalyze}
-              disabled={loading}
-              style={{
-                marginLeft: "auto",
-                padding: "10px 14px",
-                borderRadius: 12,
-                border: "1px solid rgba(0,0,0,0.12)",
-                background: loading ? "rgba(0,0,0,0.06)" : "white",
-                fontWeight: 700,
-                cursor: loading ? "not-allowed" : "pointer",
-              }}
-            >
-              {loading ? "Analyzing..." : "Analyze"}
-            </button>
+            {pdfFile && (
+              <div style={{ fontSize: 12, opacity: 0.75, lineHeight: 1.4 }}>
+                <div>Selected: {pdfFile.name}</div>
+                <div style={{ color: "#2e7d32", marginTop: 2 }}>
+                  ✓ Text extracted and loaded into input
+                </div>
+              </div>
+            )}
           </div>
+
+    <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+      <label style={{ fontSize: 13, opacity: 0.8 }}>Max sentences</label>
+      <input
+        type="number"
+        min={1}
+        max={10}
+        value={maxSentences}
+        onChange={(e) => setMaxSentences(Number(e.target.value))}
+        style={{
+          width: 70,
+          padding: "6px 8px",
+          borderRadius: 10,
+          border: "1px solid rgba(0,0,0,0.12)",
+        }}
+      />
+
+        {/* original button */}
+        <button
+          onClick={runAnalyze}
+          disabled={loading}
+          style={{
+            marginLeft: "auto",
+            padding: "10px 14px",
+            borderRadius: 12,
+            border: "1px solid rgba(0,0,0,0.12)",
+            background: loading ? "rgba(0,0,0,0.06)" : "white",
+            fontWeight: 700,
+            cursor: loading ? "not-allowed" : "pointer",
+          }}
+        >
+          {loading ? "Analyzing..." : "Analyze"}
+        </button>
+
+      </div>
 
           {error ? (
             <div
@@ -601,17 +676,22 @@ function exportCurrentSession() {
                   position: "absolute",
                   inset: 0,
                   backdropFilter: "blur(6px)",
-                  background: "rgba(255,255,255,0.65)",
+                  background: "rgba(255,255,255,0.72)",
                   borderRadius: 14,
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
-                  padding: 14,
+                  padding: 18,
                   textAlign: "center",
                   fontWeight: 800,
+                  lineHeight: 1.5,
                 }}
               >
-                Output blocked by Gate — review & approve in the dialog.
+                <div>
+                  Output blocked because the system detected risk signals.
+                  <br />
+                  Please review the warning details and approve or override the result.
+                </div>
               </div>
             )}
 
@@ -647,6 +727,10 @@ function exportCurrentSession() {
           </div>
 
           {/* Confidence */}
+          <div style={{ marginTop: 10, fontSize: 12, opacity: 0.8, lineHeight: 1.5 }}>
+            {modelConfidenceLog && <div>{modelConfidenceLog.message}</div>}
+            {ruleConfidenceLog && <div>{ruleConfidenceLog.message}</div>}
+          </div>
           <div
             style={{
               borderRadius: 14,
@@ -675,9 +759,33 @@ function exportCurrentSession() {
                 }}
               />
             </div>
-            <div style={{ marginTop: 8, fontSize: 12, opacity: 0.7 }}>
-              <span style={{ fontWeight: 700 }}>Rule:</span> &lt;60% triggers a
-              warning.
+              <div style={{ marginTop: 8, fontSize: 12, opacity: 0.7, lineHeight: 1.5 }}>
+                <div><span style={{ fontWeight: 700 }}>Threshold:</span> Confidence is one signal among multiple factors used to trigger warnings, including detected risks and content sensitivity.</div>
+                <div style={{ marginTop: 4 }}>
+                  Confidence is based on model certainty and output quality checks.
+                </div>
+              </div>
+          </div>
+
+
+          {/* Risk Classification */}
+          <div style={{ fontSize: 12, opacity: 0.65, marginTop: 6 }}>
+            High-risk domains require stricter human review before approval.
+          </div>
+          <div
+            style={{
+              borderRadius: 14,
+              border: "1px solid rgba(0,0,0,0.08)",
+              padding: 12,
+            }}
+          >
+            <div style={{ display: "flex", justifyContent: "space-between" }}>
+              <div style={{ fontSize: 13, fontWeight: 800 }}>Risk Classification</div>
+              <Badge>{(serverResult?.risk_type || "general").toUpperCase()}</Badge>
+            </div>
+
+            <div style={{ fontSize: 12, opacity: 0.75, marginTop: 6 }}>
+              Risk level: <b>{serverResult?.risk_level || "low"}</b>
             </div>
           </div>
 
@@ -828,6 +936,9 @@ function exportCurrentSession() {
 
 
           {/* Logs */}
+          <div style={{ fontSize: 12, opacity: 0.7, marginTop: -4, marginBottom: 4 }}>
+            System actions and warning explanations
+          </div>
           <div style={{ fontSize: 13, fontWeight: 700 }}>Logs</div>
           <div style={{ overflow: "auto", paddingRight: 4 }}>
             {visibleLogs.length ? (
@@ -852,6 +963,9 @@ function exportCurrentSession() {
             <div style={{ fontWeight: 900, marginBottom: 8 }}>
               The system detected potential risk signals:
             </div>
+            <div style={{ marginBottom: 10, opacity: 0.85 }}>
+              Human review is required because this content involves high-risk domains and uncertainty signals.
+            </div>
 
             {(() => {
               const warnings = (serverResult.logs || []).filter((l) => l.level === "warning");
@@ -864,12 +978,32 @@ function exportCurrentSession() {
                 l.message.toLowerCase().includes("confidence")
               );
 
+              const medicalWarnings = warnings.filter((l) =>
+                l.message.toLowerCase().includes("medical")
+              );
+
+              const financeWarnings = warnings.filter((l) =>
+                l.message.toLowerCase().includes("finance")
+              );
+
               return (
                 <div style={{ marginBottom: 12 }}>
                   {/* Risk category summary */}
                   <div style={{ fontWeight: 900, marginBottom: 8 }}>
                     Risk Categories Detected:
                   </div>
+
+                  {medicalWarnings.length > 0 && (
+                    <div style={{ marginBottom: 6 }}>
+                      • <b>Medical Risk</b> (High-stakes health-related content)
+                    </div>
+                  )}
+
+                  {financeWarnings.length > 0 && (
+                    <div style={{ marginBottom: 6 }}>
+                      • <b>Financial Risk</b> (High-stakes financial content)
+                    </div>
+                  )}
 
                   <div style={{ marginBottom: 10 }}>
                     {privacyWarnings.length > 0 && (
