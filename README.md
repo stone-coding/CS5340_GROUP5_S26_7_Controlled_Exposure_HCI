@@ -204,6 +204,35 @@ http://127.0.0.1:8000
 * **Override AI decision**: Users have the final authority to ignore or modify AI-generated safety actions.
 
 ---
+Demo Access
+
+No authentication required, but rememember to put your own OPENAI_API_KEY in the env otherwise the LLM part of this project will choose a default model_confidence = 0.40
+
+Just run frontend + backend and test with example inputs.
+
+---
+### Privacy & Safety Design
+Soft Risk (Recoverable)
+Email / phone
+Suggest revision
+Hard Risk (Enforced)
+SSN / bank account
+Automatic masking
+Cannot bypass
+High-Risk Domains
+Finance
+Medical
+→ Require human approval
+Fallback Mechanism
+
+If OpenAI API fails:
+
+LLM summarization failed → fallback to local summarization
+
+✔ Ensures system reliability
+✔ Prevents demo failure
+
+---
 
 ## Example Test Inputs & Scenarios
 
@@ -266,4 +295,21 @@ http://127.0.0.1:8000
 ###  Backend (Render)
 [https://cs5340-group5-s26-7-controlled-exposure.onrender.com](https://cs5340-group5-s26-7-controlled-exposure.onrender.com)
 
--
+###  Repository
+[https://github.com/stone-coding/CS5340_GROUP5_S26_7_Controlled_Exposure_HCI]([https://cs5340-group5-s26-7-controlled-exposure.onrender.com](https://github.com/stone-coding/CS5340_GROUP5_S26_7_Controlled_Exposure_HCI))
+
+---
+### Research Contribution
+
+This project demonstrates:
+
+Seamful vs Seamless AI interaction design
+Human-in-the-loop governance
+Risk-aware AI systems
+Transparent AI decision-making
+
+It aligns with emerging directions in:
+
+Responsible AI
+AI Safety
+Human-centered AI systems
