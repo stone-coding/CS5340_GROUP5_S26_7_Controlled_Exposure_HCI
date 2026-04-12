@@ -27,7 +27,7 @@ The goal is to **reduce automation bias** and improve **human-AI collaboration t
 ## Tech Stack
 
 ### Backend
-- Python 3.10+
+- Python 3.11
 - FastAPI
 - Uvicorn
 - Pydantic
