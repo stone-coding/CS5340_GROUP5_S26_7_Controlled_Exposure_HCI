@@ -204,8 +204,9 @@ http://127.0.0.1:8000
 * **Override AI decision**: Users have the final authority to ignore or modify AI-generated safety actions.
 
 ---
-Demo Access
-
+### Demo Access
+###  Frontend (Vercel)
+[https://cs-5340-group-5-s26-7-controlled-ex-ten.vercel.app/](https://cs-5340-group-5-s26-7-controlled-ex-ten.vercel.app/)
 No authentication required, but rememember to put your own OPENAI_API_KEY in the env otherwise the LLM part of this project will choose a default model_confidence = 0.40
 
 Just run frontend + backend and test with example inputs.
