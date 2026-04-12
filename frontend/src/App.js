@@ -295,7 +295,10 @@ export default function App() {
     l.message.toLowerCase().includes("rule-based confidence")
   );
   
-  const hasWarning = logs.some((l) => l.level === "warning");
+  const hasWarning =
+  (serverResult?.risk_level === "high") ||
+  ((serverResult?.pii_count || 0) > 0) ||
+  ((serverResult?.confidence ?? 1) < 0.55);
 
   function openOverride(initialText) {
     setDraftSummary(initialText || "");
@@ -360,9 +363,12 @@ export default function App() {
     const data = await resp.json();
     setServerResult(data);
 
-    const warningExists = (data.logs || []).some((l) => l.level === "warning");
+    const shouldBlock =
+    data.risk_level === "high" ||
+    (data.pii_count || 0) > 0 ||
+    (data.confidence ?? 1) < 0.55;
 
-    if (warningExists) {
+    if (shouldBlock) {
       setMetrics((m) => ({ ...m, gateTriggers: m.gateTriggers + 1 }));
 
       if (mode === "seamful") {
@@ -762,8 +768,7 @@ function exportCurrentSession() {
           </div>
 
           <div style={{ opacity: 0.7, fontSize: 12 }}>
-            Gate rule: if any <b>warning</b> log exists, user must approve or
-            override.
+            Gate rule: high-risk content, true sensitive data, or very low confidence require user review before approval.
           </div>
         </div>
 
@@ -949,11 +954,11 @@ function exportCurrentSession() {
             </div>
             <div style={{ fontSize: 12, opacity: 0.75, marginTop: 6 }}>
               {mode === "seamless"
-                ? "Seamless mode — warnings will not block output."
+                ? "Seamless mode — review signals will not block output."
                 : serverResult
                 ? hasWarning
-                  ? "Warnings detected — approval required."
-                  : "No warnings — auto-approved."
+                  ? "Review required before approval."
+                  : "No major review signal detected."
                 : "Run Analyze to evaluate."}
             </div>
           </div>
@@ -1034,7 +1039,7 @@ function exportCurrentSession() {
 
     
 
-      {/* ✅ Gate modal */}
+      {/*  Gate modal */}
       {gateOpen && serverResult && (
         <ModalShell title="Elicitation Gate: Human Sign-off Required" onClose={() => {}}>
           <div style={{ fontSize: 14, lineHeight: 1.6 }}>
@@ -1221,7 +1226,7 @@ function exportCurrentSession() {
         </ModalShell>
       )}
 
-      {/* ✅ Override modal */}
+      {/*  Override modal */}
       {overrideOpen && (
         <ModalShell title="Manual Override: Edit & Sign Off" onClose={() => setOverrideOpen(false)}>
           <div style={{ fontSize: 14, lineHeight: 1.6 }}>

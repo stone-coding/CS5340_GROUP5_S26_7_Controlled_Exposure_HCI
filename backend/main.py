@@ -110,7 +110,7 @@ def mask_pii(text: str) -> Tuple[str, int, int, List[LogItem]]:
     logs: List[LogItem] = []
 
     masked_text = text
-    pii_count = 0           # 真正高风险敏感信息
+    pii_count = 0           # count real sensitive infomation
     contact_info_count = 0  # email / phone
     detected_types: List[str] = []
     contact_types: List[str] = []
@@ -164,7 +164,7 @@ def mask_pii(text: str) -> Tuple[str, int, int, List[LogItem]]:
         if matches:
             contact_info_count += len(matches)
             contact_types.append(label)
-            # 仍然生成 revised input，方便 demo
+            # generate revised input for demo
             masked_text = re.sub(pattern, replacement, masked_text)
 
     # detect truly sensitive info
@@ -302,8 +302,6 @@ def build_rule_based_confidence(
     masked_token_count = sum(
         masked_text.count(token)
         for token in [
-            "[EMAIL_MASKED]",
-            "[PHONE_MASKED]",
             "[SSN_MASKED]",
             "[CARD_MASKED]",
             "[ROUTING_MASKED]",
