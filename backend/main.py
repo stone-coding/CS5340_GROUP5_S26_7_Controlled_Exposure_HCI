@@ -423,6 +423,7 @@ def run_analysis(text: str, max_sentences: int) -> AnalyzeResponse:
             )
         )
     except Exception as e:
+        print("LLM summarization failed:", repr(e))
         logs.append(
             LogItem(
                 level="warning",
