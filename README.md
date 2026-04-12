@@ -280,6 +280,4 @@ User can:
 ###  Backend (Render)
 [https://cs5340-group5-s26-7-controlled-exposure.onrender.com](https://cs5340-group5-s26-7-controlled-exposure.onrender.com)
 
-````
-
 -
