@@ -45,8 +45,10 @@ The goal is to **reduce automation bias** and improve **human-AI collaboration t
 ```bash
 repo/
 ├── backend/
+│   ├── .venc/
 │   ├── main.py
 │   ├── requirements.txt
+|   |── .env
 │
 ├── frontend/
 │   ├── package.json
@@ -207,7 +209,10 @@ http://127.0.0.1:8000
 ### Demo Access
 ###  Frontend (Vercel)
 [https://cs-5340-group-5-s26-7-controlled-ex-ten.vercel.app/](https://cs-5340-group-5-s26-7-controlled-ex-ten.vercel.app/)
-No authentication required, but rememember to put your own OPENAI_API_KEY in the env otherwise the LLM part of this project will choose a default model_confidence = 0.40
+No authentication required,
+If OPENAI_API_KEY is not provided:
+- The system will fall back to local summarization
+- Confidence scores may be lower
 
 Just run frontend + backend and test with example inputs.
 
