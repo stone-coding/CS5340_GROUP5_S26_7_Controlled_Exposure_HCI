@@ -51,6 +51,13 @@ class AnalyzeResponse(BaseModel):
     risk_level: str
     logs: List[LogItem]
 
+    masked_text: str
+    pii_count: int
+    contact_info_count: int
+    suggestions: List[str]
+    can_apply_safe_version: bool
+    review_reason: str
+
 def classify_risk(text: str) -> Tuple[str, str, List[LogItem]]:
     """
     Simple rule-based domain risk classifier.
@@ -99,55 +106,51 @@ def classify_risk(text: str) -> Tuple[str, str, List[LogItem]]:
 
     return risk_type, risk_level, logs
 
-def mask_pii(text: str) -> Tuple[str, int, List[LogItem]]:
+def mask_pii(text: str) -> Tuple[str, int, int, List[LogItem]]:
     logs: List[LogItem] = []
-    pii_count = 0
-    detected_types: List[str] = []
 
-    patterns = [
-        # Email
+    masked_text = text
+    pii_count = 0           # 真正高风险敏感信息
+    contact_info_count = 0  # email / phone
+    detected_types: List[str] = []
+    contact_types: List[str] = []
+
+    # -------- soft signals: contact info only --------
+    soft_patterns = [
         (
             r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b",
             "[EMAIL_MASKED]",
             "email",
         ),
-
-        # Phone
         (
             r"\b(?:\+?1[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}\b",
             "[PHONE_MASKED]",
             "phone",
         ),
+    ]
 
-        # SSN: 123-45-6789
+    # -------- hard signals: actually risky --------
+    hard_patterns = [
         (
             r"\b\d{3}-\d{2}-\d{4}\b",
             "[SSN_MASKED]",
             "ssn",
         ),
-
-        # Credit card: 13–19 digits, allowing spaces or dashes
         (
             r"\b(?:\d[ -]*?){13,19}\b",
             "[CARD_MASKED]",
             "credit card",
         ),
-
-        # Routing number (context-based)
         (
             r"(?i)\brouting number[:\s#-]*\d{9}\b",
             "[ROUTING_MASKED]",
             "routing number",
         ),
-
-        # Bank account number (context-based)
         (
             r"(?i)\b(account number|bank account)[:\s#-]*\d{6,17}\b",
             "[ACCOUNT_MASKED]",
             "bank account",
         ),
-
-        # Driver license number (context-based, simplified)
         (
             r"(?i)\b(driver'?s license|dl number|license number)[:\s#-]*[A-Z0-9-]{5,20}\b",
             "[DL_MASKED]",
@@ -155,33 +158,94 @@ def mask_pii(text: str) -> Tuple[str, int, List[LogItem]]:
         ),
     ]
 
-    for pattern, replacement, label in patterns:
-        matches = re.findall(pattern, text)
+    # detect contact info but DO NOT force warning
+    for pattern, replacement, label in soft_patterns:
+        matches = re.findall(pattern, masked_text)
+        if matches:
+            contact_info_count += len(matches)
+            contact_types.append(label)
+            # 仍然生成 revised input，方便 demo
+            masked_text = re.sub(pattern, replacement, masked_text)
+
+    # detect truly sensitive info
+    for pattern, replacement, label in hard_patterns:
+        matches = re.findall(pattern, masked_text)
         if matches:
             pii_count += len(matches)
             detected_types.append(label)
-            text = re.sub(pattern, replacement, text)
+            masked_text = re.sub(pattern, replacement, masked_text)
 
-    # PIN / CVV / security code: context-based only to avoid false positives
+    # PIN / CVV / security code
     pin_pattern = r"(?i)\b(pin|cvv|security code|passcode)[:\s#-]*\d{3,6}\b"
-    pin_matches = re.findall(pin_pattern, text)
+    pin_matches = re.findall(pin_pattern, masked_text)
     if pin_matches:
         pii_count += len(pin_matches)
         detected_types.append("pin/cvv")
-        text = re.sub(pin_pattern, "[PIN_OR_CVV_MASKED]", text)
+        masked_text = re.sub(pin_pattern, "[PIN_OR_CVV_MASKED]", masked_text)
 
     if pii_count > 0:
         unique_types = ", ".join(sorted(set(detected_types)))
         logs.append(
             LogItem(
                 level="warning",
-                message=f"Sensitive data detected and masked ({pii_count} field(s): {unique_types})."
+                message=f"High-risk sensitive data detected and masked ({pii_count} field(s): {unique_types})."
             )
         )
-    else:
+
+    if contact_info_count > 0:
+        contact_labels = ", ".join(sorted(set(contact_types)))
+        logs.append(
+            LogItem(
+                level="info",
+                message=f"Contact information detected ({contact_info_count} field(s): {contact_labels}). Keeping or masking is optional."
+            )
+        )
+
+    if pii_count == 0 and contact_info_count == 0:
         logs.append(LogItem(level="info", message="No sensitive data detected."))
 
-    return text, pii_count, logs
+    return masked_text, pii_count, contact_info_count, logs
+
+def build_suggestions(
+    original_text: str,
+    masked_text: str,
+    pii_count: int,
+    contact_info_count: int,
+    risk_type: str,
+    risk_level: str,
+    confidence: float,
+) -> List[str]:
+    suggestions: List[str] = []
+
+    if pii_count > 0:
+        suggestions.append(
+            "Remove or replace high-risk sensitive information before using or sharing the result."
+        )
+
+    if contact_info_count > 0:
+        suggestions.append(
+            "Contact information was detected. Keep it if it is intentionally shared, or use a revised version before forwarding or publishing."
+        )
+
+    if risk_level == "high":
+        suggestions.append(
+            f"This content is in a {risk_type} domain, so human review is recommended before approval."
+        )
+
+    if confidence < 0.60:
+        suggestions.append(
+            "Clarify or simplify the input and rerun the analysis to improve confidence."
+        )
+
+    if masked_text != original_text:
+        suggestions.append(
+            "Use the revised input if you want placeholders instead of the original contact or sensitive details."
+        )
+
+    if not suggestions:
+        suggestions.append("No immediate revision is required.")
+
+    return suggestions
 
 
 def build_rule_based_confidence(
@@ -344,7 +408,7 @@ def run_analysis(text: str, max_sentences: int) -> AnalyzeResponse:
     logs: List[LogItem] = []
     logs.append(LogItem(level="info", message="Analysis started."))
 
-    masked_text, pii_count, pii_logs = mask_pii(text)
+    masked_text, pii_count, contact_info_count, pii_logs = mask_pii(text)
     logs.extend(pii_logs)
 
     risk_type, risk_level, risk_logs = classify_risk(text)
@@ -410,12 +474,41 @@ def run_analysis(text: str, max_sentences: int) -> AnalyzeResponse:
             )
         )
 
+    suggestions = build_suggestions(
+        original_text=text,
+        masked_text=masked_text,
+        pii_count=pii_count,
+        contact_info_count=contact_info_count,
+        risk_type=risk_type,
+        risk_level=risk_level,
+        confidence=confidence,
+    )
+
+    can_apply_safe_version = masked_text != text
+
+    if pii_count > 0:
+        review_reason = "High-risk sensitive information was detected and masked."
+    elif risk_level == "high":
+        review_reason = f"This content falls into a higher-risk {risk_type} domain."
+    elif confidence < 0.60:
+        review_reason = "The confidence score is low, so review is recommended."
+    elif contact_info_count > 0:
+        review_reason = "Contact information was detected. Review is optional unless you plan to share this result."
+    else:
+        review_reason = "No major risk signal was detected."
+
     return AnalyzeResponse(
         summary=summary,
         confidence=confidence,
         risk_type=risk_type,
         risk_level=risk_level,
         logs=logs,
+        masked_text=masked_text,
+        pii_count=pii_count,
+        suggestions=suggestions,
+        can_apply_safe_version=can_apply_safe_version,
+        review_reason=review_reason,
+        contact_info_count=contact_info_count,
     )
 
 @app.post("/analyze-pdf", response_model=AnalyzeResponse)

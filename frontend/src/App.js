@@ -141,16 +141,16 @@ function IntroPage({ onEnter }) {
       >
         <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
           <div style={{ fontWeight: 800, fontSize: 18 }}>Seamful Dashboard</div>
-          <span
-            style={{
-              fontSize: 12,
-              padding: "4px 8px",
-              borderRadius: 999,
-              background: "#eee",
-            }}
-          >
-            Trust + Privacy + Gate
-          </span>
+            <span
+              style={{
+                fontSize: 12,
+                padding: "4px 8px",
+                borderRadius: 999,
+                background: "#eee",
+              }}
+            >
+              Review + Intervention + Gate
+            </span>
         </div>
       </div>
 
@@ -179,23 +179,28 @@ function IntroPage({ onEnter }) {
 
           <div style={{ fontSize: 14, lineHeight: 1.65, opacity: 0.9 }}>
             This prototype demonstrates <b>seamful vs seamless governance</b> for
-            AI-generated outputs.
+            AI-assisted workflows.
             <ul style={{ marginTop: 10 }}>
               <li>
-                <b>Privacy masking</b>: detects and masks simple PII patterns
-                (email / phone).
+                <b>Input review</b>: detects signals such as sensitive data, domain
+                risk, or low confidence.
               </li>
               <li>
-                <b>Confidence signal</b>: shows a confidence score and flags low
-                confidence.
+                <b>Confidence signal</b>: shows a confidence score to help users
+                recognize uncertainty.
               </li>
               <li>
-                <b>Gate (human sign-off)</b>: if warnings exist, seamful mode
-                blocks output until the user approves or manually overrides.
+                <b>Intervention support</b>: instead of only blocking output, the
+                system suggests actions and allows users to revise input or output
+                before approval.
               </li>
               <li>
-                <b>Seamless mode</b>: warnings do not block output (auto-approve),
-                but logs still record the risk signals.
+                <b>Gate (human sign-off)</b>: in seamful mode, outputs that need
+                review require user approval or manual override.
+              </li>
+              <li>
+                <b>Seamless mode</b>: allows automatic approval while still
+                exposing signals for transparency.
               </li>
               <li>
                 <b>Export</b>: download the current session as JSON for auditing.
@@ -203,8 +208,8 @@ function IntroPage({ onEnter }) {
             </ul>
 
             <div style={{ marginTop: 12, opacity: 0.8 }}>
-              Tip: try entering an email/phone and/or force confidence below 60%
-              to see the Gate behavior.
+              Tip: try entering ambiguous or sensitive content to see how the
+              system suggests revisions and supports intervention before approval.
             </div>
           </div>
 
@@ -273,6 +278,8 @@ export default function App() {
 
   const [page, setPage] = useState("intro"); // "intro" | "dashboard"
 
+  const [showLogs, setShowLogs] = useState(false); // folder for logs
+
 
   const conf = (approvedResult ?? serverResult)?.confidence ?? 0;
   const confPct = Math.round(conf * 100);
@@ -330,58 +337,55 @@ export default function App() {
     }
   }
 
-  async function runAnalyze() {
-    setLoading(true);
-    setError("");
-    setGateOpen(false);
-    setOverrideOpen(false);
-    setApprovedResult(null); // reset visible output each run
-    setLastDecision("none");
-    try {
-      const resp = await fetch(`${API_BASE}/analyze`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text, max_sentences: maxSentences }),
-      });
-      if (!resp.ok) {
-        const t = await resp.text();
-        throw new Error(`HTTP ${resp.status}: ${t}`);
-      }
-      const data = await resp.json();
-      setServerResult(data);
+  async function runAnalyzeWithText(inputText = text) {
+  setLoading(true);
+  setError("");
+  setGateOpen(false);
+  setOverrideOpen(false);
+  setApprovedResult(null);
+  setLastDecision("none");
 
-      // Elicitation Gate logic:
-      // If any warning exists, block output until user approves.
-      const warningExists = (data.logs || []).some((l) => l.level === "warning");
+  try {
+    const resp = await fetch(`${API_BASE}/analyze`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ text: inputText, max_sentences: maxSentences }),
+    });
 
-      if (warningExists) {
-        // metrics：if warning count as risk detected
-        setMetrics((m) => ({ ...m, gateTriggers: m.gateTriggers + 1 }));
-
-        if (mode === "seamful") {
-          // Seamful: enforce gate
-          setGateOpen(true);
-        } else {
-          // Seamless: no gate, auto-approve
-          const timestamp = new Date().toLocaleTimeString();
-          const record = `Auto-approved (seamless mode) at ${timestamp}`;
-          const approved = {
-            ...data,
-            logs: [...(data.logs || []), { level: "info", message: record }],
-          };
-          setApprovedResult(approved);
-          setLastDecision("auto_approved");
-        }
-      } else {
-        setApprovedResult(data);
-      }
-
-    } catch (e) {
-      setError(e.message || String(e));
-    } finally {
-      setLoading(false);
+    if (!resp.ok) {
+      const t = await resp.text();
+      throw new Error(`HTTP ${resp.status}: ${t}`);
     }
+
+    const data = await resp.json();
+    setServerResult(data);
+
+    const warningExists = (data.logs || []).some((l) => l.level === "warning");
+
+    if (warningExists) {
+      setMetrics((m) => ({ ...m, gateTriggers: m.gateTriggers + 1 }));
+
+      if (mode === "seamful") {
+        setGateOpen(true);
+      } else {
+        const timestamp = new Date().toLocaleTimeString();
+        const record = `Auto-approved (seamless mode) at ${timestamp}`;
+        const approved = {
+          ...data,
+          logs: [...(data.logs || []), { level: "info", message: record }],
+        };
+        setApprovedResult(approved);
+        setLastDecision("auto_approved");
+      }
+    } else {
+      setApprovedResult(data);
+    }
+  } catch (e) {
+    setError(e.message || String(e));
+  } finally {
+    setLoading(false);
   }
+}
 
   
 
@@ -605,7 +609,7 @@ function exportCurrentSession() {
 
         {/* original button */}
         <button
-          onClick={runAnalyze}
+          onClick={() => runAnalyzeWithText(text)}
           disabled={loading}
           style={{
             marginLeft: "auto",
@@ -621,6 +625,61 @@ function exportCurrentSession() {
         </button>
 
       </div>
+
+
+      {serverResult?.review_reason && (
+        <div
+          style={{
+            marginTop: 10,
+            padding: 12,
+            borderRadius: 12,
+            border: "1px solid rgba(0,0,0,0.08)",
+            background: "rgba(0,0,0,0.02)",
+          }}
+        >
+          <div style={{ fontSize: 13, fontWeight: 800, marginBottom: 6 }}>
+            Recommended Actions
+          </div>
+
+          <div style={{ fontSize: 13, opacity: 0.85, lineHeight: 1.5, marginBottom: 8 }}>
+            {serverResult.review_reason}
+          </div>
+
+          {serverResult?.suggestions?.length > 0 && (
+            <div style={{ fontSize: 13, lineHeight: 1.5 }}>
+              {serverResult.suggestions.map((s, idx) => (
+                <div key={idx} style={{ marginBottom: 4 }}>
+                  • {s}
+                </div>
+              ))}
+            </div>
+          )}
+
+          {serverResult?.can_apply_safe_version && (
+            <button
+              onClick={async () => {
+                const safeText = serverResult.masked_text || text;
+                setText(safeText);
+
+                setTimeout(() => {
+                  runAnalyzeWithText(safeText);
+                }, 0);
+              }}
+              style={{
+                marginTop: 10,
+                padding: "10px 12px",
+                borderRadius: 12,
+                border: "1px solid rgba(0,0,0,0.12)",
+                background: "white",
+                fontWeight: 800,
+                cursor: "pointer",
+              }}
+            >
+              Use Revised Input & Rerun
+            </button>
+          )}
+        </div>
+      )}
 
           {error ? (
             <div
@@ -688,9 +747,9 @@ function exportCurrentSession() {
                 }}
               >
                 <div>
-                  Output blocked because the system detected risk signals.
+                  This result needs review before approval.
                   <br />
-                  Please review the warning details and approve or override the result.
+                  Please check the highlighted issues, revise the input if needed, or approve manually.
                 </div>
               </div>
             )}
@@ -939,18 +998,37 @@ function exportCurrentSession() {
           <div style={{ fontSize: 12, opacity: 0.7, marginTop: -4, marginBottom: 4 }}>
             System actions and warning explanations
           </div>
-          <div style={{ fontSize: 13, fontWeight: 700 }}>Logs</div>
-          <div style={{ overflow: "auto", paddingRight: 4 }}>
-            {visibleLogs.length ? (
-              visibleLogs.map((l, idx) => (
-                <LogRow key={idx} level={l.level} message={l.message} />
-              ))
-            ) : (
-              <div style={{ fontSize: 13, opacity: 0.7 }}>
-                No logs yet. Run Analyze.
-              </div>
-            )}
-          </div>
+
+          <button
+            onClick={() => setShowLogs((v) => !v)}
+            style={{
+              padding: "8px 10px",
+              borderRadius: 10,
+              border: "1px solid rgba(0,0,0,0.12)",
+              background: "white",
+              fontWeight: 700,
+              cursor: "pointer",
+              alignSelf: "flex-start",
+            }}
+          >
+            {showLogs ? "Hide Technical Details" : "Show Technical Details"}
+          </button>
+
+          {showLogs && (
+            <div style={{ overflow: "auto", paddingRight: 4, marginTop: 8 }}>
+              {visibleLogs.length ? (
+                visibleLogs.map((l, idx) => (
+                  <LogRow key={idx} level={l.level} message={l.message} />
+                ))
+              ) : (
+                <div style={{ fontSize: 13, opacity: 0.7 }}>
+                  No logs yet. Run Analyze.
+                </div>
+              )}
+            </div>
+          )}
+
+
         </div>
       </div>
 
@@ -964,7 +1042,7 @@ function exportCurrentSession() {
               The system detected potential risk signals:
             </div>
             <div style={{ marginBottom: 10, opacity: 0.85 }}>
-              Human review is required because this content involves high-risk domains and uncertainty signals.
+              This result includes signals that may need user review before approval.
             </div>
 
             {(() => {
@@ -1026,6 +1104,41 @@ function exportCurrentSession() {
                   {/* Keep original warning details */}
                   <div style={{ fontWeight: 900, marginBottom: 8 }}>
                     Warning Details:
+                    {serverResult?.suggestions?.length > 0 && (
+                      <div style={{ marginTop: 14 }}>
+                        <div style={{ fontWeight: 900, marginBottom: 8 }}>
+                          Suggested Next Step:
+                        </div>
+
+                        {serverResult.suggestions.map((s, i) => (
+                          <div key={i} style={{ marginBottom: 6 }}>
+                            • {s}
+                          </div>
+                        ))}
+
+                        {serverResult?.can_apply_safe_version && (
+                          <button
+                            onClick={() => {
+                              const safeText = serverResult.masked_text || text;
+                              setText(safeText);
+                              setGateOpen(false);
+                              runAnalyzeWithText(safeText);
+                            }}
+                            style={{
+                              marginTop: 10,
+                              padding: "10px 12px",
+                              borderRadius: 12,
+                              border: "1px solid rgba(0,0,0,0.12)",
+                              background: "white",
+                              fontWeight: 900,
+                              cursor: "pointer",
+                            }}
+                          >
+                            Apply Safe Version & Rerun
+                          </button>
+                        )}
+                      </div>
+                    )}
                   </div>
                   {warnings.map((l, i) => (
                     <div key={i} style={{ marginBottom: 6 }}>
