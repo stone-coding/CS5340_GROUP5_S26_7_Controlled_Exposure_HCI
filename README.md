@@ -246,7 +246,7 @@ http://127.0.0.1:8000
 * **Input**: *"My SSN is 123-45-6789 and my bank account number is 987654321. Please summarize this information."*
 * **Expected Behavior & Logic**:
     * **Hard Sensitive Data**: Detects high-stakes identifiers (SSN, Bank Info).
-    * **Auto-Masking**: Immediately replaces values with `[SSN_MASKED]` and `[ACCOUNT_MASKED]`.
+    * **Auto-Masking**: Immediately replaces values with `[SSN_MASKED]`.
     * **Strict Enforcement**: Unlike Case 2 (Contact Info), this triggers a mandatory "Revised Input" workflow because financial identity must be protected by default.
 
 ### Case 7 – Mixed Risk Scenario (Combined Signals)
