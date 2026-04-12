@@ -296,7 +296,7 @@ LLM summarization failed → fallback to local summarization
 [https://cs5340-group5-s26-7-controlled-exposure.onrender.com](https://cs5340-group5-s26-7-controlled-exposure.onrender.com)
 
 ###  Repository
-[https://github.com/stone-coding/CS5340_GROUP5_S26_7_Controlled_Exposure_HCI]([https://cs5340-group5-s26-7-controlled-exposure.onrender.com](https://github.com/stone-coding/CS5340_GROUP5_S26_7_Controlled_Exposure_HCI))
+[https://github.com/stone-coding/CS5340_GROUP5_S26_7_Controlled_Exposure_HCI](https://github.com/stone-coding/CS5340_GROUP5_S26_7_Controlled_Exposure_HCI)
 
 ---
 ### Research Contribution
