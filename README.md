@@ -301,15 +301,15 @@ LLM summarization failed → fallback to local summarization
 ---
 ### Research Contribution
 
-This project demonstrates:
+-- This project demonstrates:
 
-Seamful vs Seamless AI interaction design
-Human-in-the-loop governance
-Risk-aware AI systems
-Transparent AI decision-making
+- Seamful vs Seamless AI interaction design
+- Human-in-the-loop governance
+- Risk-aware AI systems
+- Transparent AI decision-making
 
-It aligns with emerging directions in:
+-- It aligns with emerging directions in:
 
-Responsible AI
-AI Safety
-Human-centered AI systems
+- Responsible AI
+- AI Safety
+- Human-centered AI systems
