@@ -104,7 +104,7 @@ pip install -r requirements.txt
 
 ### Step 5: Add environment variables
 
-Create a `.env` file:
+Create a `.env` file in the same level of backend folder:
 
 ```bash
 OPENAI_API_KEY=your_api_key_here
@@ -188,7 +188,7 @@ http://127.0.0.1:8000
 * **Threshold triggers warning**: Automatically flags responses when the confidence score falls below a predefined safety level.
 
 ### 3. Privacy Exposure (PII Masking)
-* **Detection**: Identifies sensitive Personally Identifiable Information (PII) such as **Emails** and **Phone numbers**.
+* **Detection**: Identifies sensitive Personally Identifiable Information (PII) such as **SSN** and **Driver License Number**.
 * **Features**: 
     * Automatically masks sensitive data to prevent leakage.
     * Logs warnings in the system history for transparency.
