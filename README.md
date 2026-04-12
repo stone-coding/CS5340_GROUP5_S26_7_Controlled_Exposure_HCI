@@ -218,97 +218,66 @@ User can:
 
 ---
 
-## Example Test Inputs
-
-## Example Test Inputs
+## Example Test Inputs & Scenarios
 
 ### Case 1 – Baseline (No Risk)
+* **Input**: *"Summarize the benefits of regular exercise for mental health and productivity."*
+* **Expected Behavior**:
+    * No risk detected.
+    * No warnings or gates triggered.
+    * Seamful and seamless modes behave identically.
 
-```text
-Summarize the benefits of regular exercise for mental health and productivity.
+### Case 2 – Contact Information (Soft Risk, Recoverable)
+* **Input**: *"Contact me at haomiao@gmail.com or 408-123-4567. This system hides uncertainty..."*
+* **Expected Behavior**:
+    * Contact information detected.
+    * Soft warning generated.
+    * No mandatory gate; "Use Revised Input & Rerun" option available.
+    * User can replace sensitive fields with placeholders.
 
-Expected Behavior:
+### Case 3 – Financial Domain (High Risk)
+* **Input**: *"Provide financial advice: I have $50,000 and want to invest all of it in high-return opportunities..."*
+* **Expected Behavior**:
+    * Financial domain detected.
+    * High-risk classification.
+    * Gate triggered (Human approval required before output).
 
-No risk detected
-No warnings
-No gate triggered
-Seamful and seamless modes behave the same
+### Case 4 – Medical Domain (High Risk)
+* **Input**: *"I have chest pain and shortness of breath. What medication should I take immediately?"*
+* **Expected Behavior**:
+    * Medical domain detected.
+    * High-risk classification.
+    * Gate triggered; requires human oversight.
 
-**### Case 2 – Contact Information (Soft Risk, Recoverable)**
-Contact me at haomiao@gmail.com or 408-123-4567. This system hides uncertainty and increases automation bias. We want resilience.
+### Case 5 – Low Confidence (Uncertainty Trigger)
+* **Input**: *"Explain quantum computing in one sentence using simple terms but also include technical accuracy and real-world applications..."*
+* **Expected Behavior**:
+    * Conflicting requirements detected.
+    * Low confidence score calculated.
+    * Gate triggered due to uncertainty (rather than domain risk).
 
-Expected Behavior:
+### Case 6 – Hard PII (Sensitive Data Protection)
+* **Input**: *"My SSN is 123-45-6789 and my bank account number is 987654321."*
+* **Expected Behavior**:
+    * Hard sensitive data detected (SSN, bank account).
+    * Data automatically masked (e.g., `[SSN_MASKED]`).
+    * "Use Revised Input & Rerun" triggered; strong privacy enforcement.
 
-Contact information detected
-Soft warning generated
-No mandatory gate
-“Use Revised Input & Rerun” option available
-User can replace sensitive fields with placeholders
-
-**###Case 3 – Financial Domain (High Risk)**
-Provide financial advice: I have $50,000 and want to invest all of it in high-return opportunities. What specific stocks should I buy right now to maximize profit?
-
-Expected Behavior:
-
-Financial domain detected
-High-risk classification
-Gate triggered
-Human approval required before output
-
-**### Case 4 – Medical Domain (High Risk)**
-I have chest pain and shortness of breath. What medication should I take immediately to treat this condition?
-
-Expected Behavior:
-
-Medical domain detected
-High-risk classification
-Gate triggered
-Requires human oversight
-
-**### Case 5 – Low Confidence (Uncertainty Trigger)**
-Explain quantum computing in one sentence using simple terms but also include technical accuracy and real-world applications in detail.
-
-Expected Behavior:
-
-Conflicting requirements detected
-Low confidence score
-Gate triggered due to uncertainty (not domain risk)
-
-**### Case 6 – Hard PII (Sensitive Data Protection)**
-My SSN is 123-45-6789 and my bank account number is 987654321. Please summarize this information.
-
-Expected Behavior:
-
-Hard sensitive data detected (SSN, bank account)
-Data automatically masked
-“[SSN_MASKED]” / “[ACCOUNT_MASKED]” shown
-“Use Revised Input & Rerun” triggered
-Strong privacy enforcement
-**
-###Case 7 – Mixed Risk Scenario (Combined Signals)**
-Contact me at haomiao@gmail.com. I have $20,000 and want aggressive investment advice for fast profit. My SSN is 123-45-6789.
-
-Expected Behavior:
-
-Multiple signals detected:
-Contact info (soft risk)
-Financial content (high risk)
-SSN (hard sensitive data)
-System differentiates risk levels
-Applies different strategies:
-Mask sensitive data
-Trigger gate for financial risk
+### Case 7 – Mixed Risk Scenario (Combined Signals)
+* **Input**: *"Contact me at haomiao@gmail.com. I want aggressive investment advice. My SSN is 123..."*
+* **Expected Behavior**:
+    * Multiple signals detected (Contact info, Financial risk, SSN).
+    * System differentiates risk levels per signal.
+    * Applies combined strategies: Masking for PII + Gate for Financial risk.
 
 ---
 
-## Deployment (Optional)
+## Deployment
 
-### Frontend (Vercel)
-
+###  Frontend (Vercel)
 [https://cs-5340-group-5-s26-7-controlled-ex-ten.vercel.app/](https://cs-5340-group-5-s26-7-controlled-ex-ten.vercel.app/)
 
-### Backend (Render)
-
+###  Backend (Render)
 [https://cs5340-group5-s26-7-controlled-exposure.onrender.com](https://cs5340-group5-s26-7-controlled-exposure.onrender.com)
 
 ````
