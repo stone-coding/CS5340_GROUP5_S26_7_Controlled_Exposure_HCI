@@ -423,11 +423,11 @@ def run_analysis(text: str, max_sentences: int) -> AnalyzeResponse:
                 message=f"Model confidence estimated from token log probabilities: {model_confidence:.2f}"
             )
         )
-    except Exception:
+    except Exception as e:
         logs.append(
             LogItem(
                 level="warning",
-                message="Model summarization failed. Falling back to local summarization."
+                message=f"Model summarization failed ({str(e)}). Falling back to local summarization."
             )
         )
         summary = masked_text[:300].strip()
