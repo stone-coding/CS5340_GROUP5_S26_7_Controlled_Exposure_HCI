@@ -31,7 +31,7 @@ The goal is to **reduce automation bias** and improve **human-AI collaboration t
 - FastAPI
 - Uvicorn
 - Pydantic
-- (Optional) OpenAI API
+- OpenAI API
 
 ### Frontend
 - React (Create React App)
@@ -102,7 +102,7 @@ source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
-### Step 5: (Optional) Add environment variables
+### Step 5: Add environment variables
 
 Create a `.env` file:
 
